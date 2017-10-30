@@ -1,0 +1,243 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# Kallisto Overview\n",
+    "\n",
+    "## 1. Build an Index\n",
+    "\n",
+    "## 2. Quantify reads against the index\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# Build an Index\n",
+    "\n",
+    "## 5-10 minutes"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 1,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "kallisto index -i /raw/RNAseq_RAW_DATA/reference_dataset/transcripts.idx /raw/RNAseq_RAW_DATA/reference_dataset/Homo_sapiens.GRCh38.cdna.all.fa.gz\r\n"
+     ]
+    }
+   ],
+   "source": [
+    "! echo kallisto index -i /raw/RNAseq_RAW_DATA/reference_dataset/transcripts.idx /raw/RNAseq_RAW_DATA/reference_dataset/Homo_sapiens.GRCh38.cdna.all.fa.gz"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "[build] loading fasta file /raw/RNAseq_RAW_DATA/reference_dataset/Homo_sapiens.GRCh38.cdna.all.fa.gz\n",
+    "[build] k-mer length: 31\n",
+    "[build] warning: clipped off poly-A tail (longer than 10)\n",
+    "        from 1400 target sequences\n",
+    "[build] warning: replaced 83 non-ACGUT characters in the input sequence\n",
+    "        with pseudorandom nucleotides\n",
+    "[build] counting k-mers ... done.\n",
+    "[build] building target de Bruijn graph ...  done \n",
+    "[build] creating equivalence classes ...  done\n",
+    "[build] target de Bruijn graph has 1057821 contigs and contains 104600239 k-mers "
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# Kallisto Quant"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": [
+    "import sys\n",
+    "import re\n",
+    "from Bio import SeqIO\n",
+    "\n",
+    "index = \"/raw/RNAseq_RAW_DATA/reference_dataset/transcripts.idx\"\n",
+    "config_fastq = open(\"/data/project/Kallisto_Alignment/Raw_Local.txt\" , \"r\")\n",
+    "\n",
+    "outputdir = \"/raw/RNAseq_RAW_DATA/\"\n",
+    "output_extension = \".kallisto.output\"\n",
+    "\n",
+    "fastq_path_lists_input = []\n",
+    "read1= ''\n",
+    "read2= ''\n",
+    "sample_ids = []\n",
+    "\n",
+    "condition = ['Parental', 'Parental', 'Brain', 'Brain', 'Brain']\n",
+    "\n",
+    "### WRITE OUT TO TEXT META-DATA-CONFIG FILE ####\n",
+    "    \n",
+    "sleuth = open(\"/raw/RNAseq_RAW_DATA/kallisto_output/sleuth_meta/sleuth_meta.txt\", \"w+\")\n",
+    "\n",
+    "sleuth.write(\"sample\" + \"\\t\" + \"condition\" + \"\\t\" + \"path\" + \"\\n\")\n",
+    "\n",
+    "\n",
+    "##### FASTQ ######\n",
+    "\n",
+    "for line in config_fastq:\n",
+    "    \n",
+    "    line = line.rstrip()\n",
+    "    if line.startswith(\"#\"):\n",
+    "        continue\n",
+    "    else:\n",
+    "        fastq_read_path = line\n",
+    "        fastq_path_lists_input.append(fastq_read_path)\n",
+    "        \n",
+    "for i in range(0, len(fastq_path_lists_input), 2):\n",
+    "    read1 = fastq_path_lists_input[i]\n",
+    "    read2 = fastq_path_lists_input[i+1]\n",
+    "    \n",
+    "    sample_id = read1.split(\"/\")\n",
+    "    sample_id = sample_id[4]\n",
+    "    sample_id = sample_id.split(\"_\")\n",
+    "    sample_id = sample_id[0]       \n",
+    "    sample_ids.append(sample_id)\n",
+    "    \n",
+    "    ! time kallisto quant -i $index -o $outputdir$sample_id$output_extension -b 100 -t 8 $read1 $read2\n",
+    "    \n",
+    "    ### writes out to SLEUTH file #####\n",
+    "\n",
+    "for i in range(0,len(sample_ids), 1):      \n",
+    "\n",
+    "    sleuth.write(sample_ids[i] + \"\\t\" + condition[i] + \"\\t\" + outputdir + sample_id + output_extension + \"\\n\")   \n",
+    "    "
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "[quant] fragment length distribution will be estimated from the data\n",
+    "[index] k-mer length: 31\n",
+    "[index] number of targets: 176,241\n",
+    "[index] number of k-mers: 104,600,239\n",
+    "[index] number of equivalence classes: 702,950\n",
+    "[quant] running in paired-end mode\n",
+    "[quant] will process pair 1: /raw/RNAseq_RAW_DATA/parental_datasets/SRR3649333_1.fastq\n",
+    "                             /raw/RNAseq_RAW_DATA/parental_datasets/SRR3649333_2.fastq\n",
+    "[quant] finding pseudoalignments for the reads ... done\n",
+    "[quant] processed 90,509,942 reads, 80,396,859 reads pseudoaligned\n",
+    "[quant] estimated average fragment length: 158.459\n",
+    "[   em] quantifying the abundances ... done\n",
+    "[   em] the Expectation-Maximization algorithm ran for 1,674 rounds\n",
+    "[bstrp] number of EM bootstraps complete: 100\n",
+    "\n",
+    "8324.11user 21.73system 21:37.31elapsed 643%CPU (0avgtext+0avgdata 4495092maxresident)k\n",
+    "72831144inputs+172976outputs (36major+963519minor)pagefaults 0swaps\n",
+    "\n",
+    "[quant] fragment length distribution will be estimated from the data\n",
+    "[index] k-mer length: 31\n",
+    "[index] number of targets: 176,241\n",
+    "[index] number of k-mers: 104,600,239\n",
+    "[index] number of equivalence classes: 702,950\n",
+    "[quant] running in paired-end mode\n",
+    "[quant] will process pair 1: /raw/RNAseq_RAW_DATA/parental_datasets/SRR3649334_1.fastq\n",
+    "                             /raw/RNAseq_RAW_DATA/parental_datasets/SRR3649334_2.fastq\n",
+    "[quant] finding pseudoalignments for the reads ... done\n",
+    "[quant] processed 45,937,610 reads, 41,882,055 reads pseudoaligned\n",
+    "[quant] estimated average fragment length: 156.026\n",
+    "[   em] quantifying the abundances ... done\n",
+    "[   em] the Expectation-Maximization algorithm ran for 1,187 rounds\n",
+    "[bstrp] number of EM bootstraps complete: 100\n",
+    "\n",
+    "5450.60user 12.39system 14:01.98elapsed 648%CPU (0avgtext+0avgdata 4463920maxresident)k\n",
+    "42061176inputs+148152outputs (1major+931246minor)pagefaults 0swaps\n",
+    "\n",
+    "[quant] fragment length distribution will be estimated from the data\n",
+    "[index] k-mer length: 31\n",
+    "[index] number of targets: 176,241\n",
+    "[index] number of k-mers: 104,600,239\n",
+    "[index] number of equivalence classes: 702,950\n",
+    "[quant] running in paired-end mode\n",
+    "[quant] will process pair 1: /raw/RNAseq_RAW_DATA/brain_derivative/SRR3649335_1.fastq\n",
+    "                             /raw/RNAseq_RAW_DATA/brain_derivative/SRR3649335_2.fastq\n",
+    "[quant] finding pseudoalignments for the reads ... done\n",
+    "[quant] processed 31,721,102 reads, 28,592,859 reads pseudoaligned\n",
+    "[quant] estimated average fragment length: 160.72\n",
+    "[   em] quantifying the abundances ... done\n",
+    "[   em] the Expectation-Maximization algorithm ran for 1,569 rounds\n",
+    "[bstrp] number of EM bootstraps complete: 100\n",
+    "\n",
+    "4616.70user 5.78system 11:42.73elapsed 657%CPU (0avgtext+0avgdata 4468336maxresident)k\n",
+    "26659944inputs+146664outputs (0major+354772minor)pagefaults 0swaps\n",
+    "\n",
+    "[quant] fragment length distribution will be estimated from the data\n",
+    "[index] k-mer length: 31\n",
+    "[index] number of targets: 176,241\n",
+    "[index] number of k-mers: 104,600,239\n",
+    "[index] number of equivalence classes: 702,950\n",
+    "[quant] running in paired-end mode\n",
+    "[quant] will process pair 1: /raw/RNAseq_RAW_DATA/brain_derivative/SRR3649336_1.fastq\n",
+    "                             /raw/RNAseq_RAW_DATA/brain_derivative/SRR3649336_2.fastq\n",
+    "[quant] finding pseudoalignments for the reads ... done\n",
+    "[quant] processed 46,580,605 reads, 42,207,553 reads pseudoaligned\n",
+    "[quant] estimated average fragment length: 159.551\n",
+    "[   em] quantifying the abundances ... done\n",
+    "[   em] the Expectation-Maximization algorithm ran for 1,357 rounds\n",
+    "[bstrp] number of EM bootstraps complete: 100\n",
+    "\n",
+    "5292.34user 6.38system 13:19.39elapsed 662%CPU (0avgtext+0avgdata 4466632maxresident)k\n",
+    "39168800inputs+148056outputs (1major+346439minor)pagefaults 0swaps\n",
+    "\n",
+    "[quant] fragment length distribution will be estimated from the data\n",
+    "[index] k-mer length: 31\n",
+    "[index] number of targets: 176,241\n",
+    "[index] number of k-mers: 104,600,239\n",
+    "[index] number of equivalence classes: 702,950\n",
+    "[quant] running in paired-end mode\n",
+    "[quant] will process pair 1: /raw/RNAseq_RAW_DATA/brain_derivative/SRR3649337_1.fastq\n",
+    "                             /raw/RNAseq_RAW_DATA/brain_derivative/SRR3649337_2.fastq\n",
+    "[quant] finding pseudoalignments for the reads ... done\n",
+    "[quant] processed 45,546,321 reads, 40,651,327 reads pseudoaligned\n",
+    "[quant] estimated average fragment length: 160.128\n",
+    "[   em] quantifying the abundances ... done\n",
+    "[   em] the Expectation-Maximization algorithm ran for 1,443 rounds\n",
+    "[bstrp] number of EM bootstraps complete: 100\n",
+    "\n",
+    "5505.52user 6.34system 13:42.78elapsed 669%CPU (0avgtext+0avgdata 4469860maxresident)k\n",
+    "38297944inputs+149712outputs (1major+355475minor)pagefaults 0swaps"
+   ]
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.6.3"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 2
+}
