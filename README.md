@@ -7,3 +7,5 @@
 
 ### Useful Links:
 * http://achri.blogspot.com/2016/10/using-kallisto-sleuth.html
+* https://help.github.com/articles/fork-a-repo/
+* https://help.github.com/articles/creating-a-pull-request/
